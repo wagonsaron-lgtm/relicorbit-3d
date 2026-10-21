@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="en" class="">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RelicOrbit 3D — Abandoned but not Forgotten</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Product+Sans:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Product Sans"', 'Inter', 'system-ui', 'sans-serif'] },
+          colors: { space: { 950: '#020617', 900: '#0a0f1e', 800: '#111827', 700: '#1e293b' } },
+        },
+      },
+    };
+    (function () {
+      const saved = localStorage.getItem('relicorbit-theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const useDark = saved ? saved === 'dark' : prefersDark;
+      if (useDark) document.documentElement.classList.add('dark');
+    })();
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+    body {
+      background-color: #f1f5f9;
+      color: #0f172a;
+      font-family: 'Product Sans','Inter',system-ui,sans-serif;
+      overflow-x: hidden; min-height: 100vh;
+      transition: background-color .5s ease, color .5s ease;
+    }
+    html.dark body { background-color: #020617; color: #e2e8f0; }
+
+    .fluid-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; opacity: 0; transition: opacity .6s ease; }
+    html.dark .fluid-bg { opacity: 1; }
+    .fluid-blob { position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.28; animation: floatBlob 18s ease-in-out infinite alternate; will-change: transform, opacity; }
+    .fluid-blob:nth-child(1) { width:600px; height:600px; background: radial-gradient(circle,#3b82f6 0%,#1d4ed8 40%,transparent 70%); top:-10%; left:-10%; animation-duration:22s; }
+    .fluid-blob:nth-child(2) { width:700px; height:700px; background: radial-gradient(circle,#8b5cf6 0%,#6d28d9 40%,transparent 70%); bottom:-15%; right:-10%; animation-duration:26s; animation-delay:-6s; }
+    .fluid-blob:nth-child(3) { width:500px; height:500px; background: radial-gradient(circle,#06b6d4 0%,#0891b2 40%,transparent 70%); top:40%; left:50%; transform:translateX(-50%); animation-duration:20s; animation-delay:-12s; }
+    .fluid-blob:nth-child(4) { width:450px; height:450px; background: radial-gradient(circle,#f43f5e 0%,#be123c 40%,transparent 70%); top:15%; right:15%; animation-duration:24s; animation-delay:-3s; opacity:0.2; }
+    @keyframes floatBlob { 0%{transform:translate(0,0) scale(1);opacity:.25} 33%{transform:translate(60px,-50px) scale(1.15);opacity:.4} 66%{transform:translate(-40px,40px) scale(.95);opacity:.2} 100%{transform:translate(30px,-20px) scale(1.1);opacity:.35} }
+
+    #meteorCanvas { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0; transition: opacity .6s ease; }
+    html.dark #meteorCanvas { opacity: 1; }
+    .content-layer { position: relative; z-index: 10; }
+
+    html:not(.dark) body::before {
+      content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(59,130,246,.08), transparent 40%),
+        radial-gradient(circle at 80% 60%, rgba(139,92,246,.08), transparent 40%),
+        radial-gradient(circle at 50% 100%, rgba(34,211,238,.06), transparent 40%);
+    }
+
+    .glass-card {
+      background: rgba(255,255,255,0.75);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(15,23,42,0.08);
+      border-radius: 1.25rem;
+      transition: all .4s cubic-bezier(.4,0,.2,1);
+    }
+    html.dark .glass-card {
+      background: rgba(15,23,42,0.55);
+      border: 1px solid rgba(148,163,184,0.12);
+    }
+    .glass-card:hover { border-color: rgba(59,130,246,0.35); box-shadow: 0 0 40px rgba(59,130,246,.12), 0 8px 32px rgba(0,0,0,.15); transform: translateY(-4px); }
+    html.dark .glass-card:hover { box-shadow: 0 0 40px rgba(59,130,246,.12), 0 8px 32px rgba(0,0,0,.4); }
+
+    .glow-text { text-shadow: 0 0 20px rgba(96,165,250,.5), 0 0 60px rgba(59,130,246,.2); }
+    .gradient-text { background: linear-gradient(135deg,#3b82f6 0%,#8b5cf6 50%,#06b6d4 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+    #navbar { transition: background-color .4s ease, border-color .4s ease, backdrop-filter .4s ease; }
+    .navbar-scrolled {
+      background: rgba(255,255,255,0.9);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(15,23,42,0.08);
+    }
+    html.dark .navbar-scrolled {
+      background: rgba(2,6,23,0.92);
+      border-bottom: 1px solid rgba(148,163,184,0.1);
+    }
+
+    .text-adaptive { color: #0f172a; transition: color .4s ease; }
+    html.dark .text-adaptive { color: #e2e8f0; }
+    .text-muted { color: #475569; transition: color .4s ease; }
+    html.dark .text-muted { color: #94a3b8; }
+    .text-subtle { color: #64748b; transition: color .4s ease; }
+    html.dark .text-subtle { color: #64748b; }
+    .border-adaptive { border-color: rgba(15,23,42,0.08); transition: border-color .4s ease; }
+    html.dark .border-adaptive { border-color: rgba(148,163,184,0.12); }
+
+    .modal-overlay { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(2,6,23,.65); backdrop-filter: blur(8px); opacity: 0; visibility: hidden; transition: opacity .35s ease, visibility .35s ease; }
+    .modal-overlay.active { opacity: 1; visibility: visible; }
+    .modal-content { max-width: 720px; width: 100%; max-height: 90vh; overflow-y: auto; transform: scale(.9) translateY(20px); transition: transform .35s cubic-bezier(.4,0,.2,1); }
+    .modal-overlay.active .modal-content { transform: scale(1) translateY(0); }
+    .modal-content::-webkit-scrollbar { width: 6px; }
+    .modal-content::-webkit-scrollbar-track { background: rgba(15,23,42,.5); border-radius: 3px; }
+    .modal-content::-webkit-scrollbar-thumb { background: rgba(96,165,250,.4); border-radius: 3px; }
+
+    .chat-widget { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 90; }
+    .chat-toggle { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg,#3b82f6,#8b5cf6); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 0 30px rgba(59,130,246,.5), 0 4px 20px rgba(0,0,0,.4); transition: all .3s ease; border: none; color: white; }
+    .chat-toggle:hover { transform: scale(1.1); box-shadow: 0 0 50px rgba(59,130,246,.7), 0 6px 24px rgba(0,0,0,.5); }
+
+    .chat-panel {
+      position: absolute; bottom: 80px; right: 0;
+      width: 400px; max-width: calc(100vw - 3rem);
+      height: 560px; max-height: calc(100vh - 140px);
+      border-radius: 1.25rem;
+      background: rgba(255,255,255,0.96);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(15,23,42,0.1);
+      box-shadow: 0 20px 60px rgba(15,23,42,.2), 0 0 40px rgba(59,130,246,.08);
+      display: flex; flex-direction: column; overflow: hidden;
+      transform: scale(.85) translateY(20px); opacity: 0; visibility: hidden;
+      transition: all .3s cubic-bezier(.4,0,.2,1);
+      transform-origin: bottom right;
+    }
+    html.dark .chat-panel {
+      background: rgba(10,15,30,.96);
+      border: 1px solid rgba(148,163,184,.15);
+      box-shadow: 0 20px 60px rgba(0,0,0,.6), 0 0 40px rgba(59,130,246,.15);
+    }
+    .chat-panel.open { transform: scale(1) translateY(0); opacity: 1; visibility: visible; }
+
+    .chat-messages { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: .75rem; }
+    .chat-messages::-webkit-scrollbar { width: 4px; }
+    .chat-messages::-webkit-scrollbar-thumb { background: rgba(96,165,250,.3); border-radius: 2px; }
+
+    .chat-msg { max-width: 88%; padding: .75rem 1rem; border-radius: 1rem; font-size: .875rem; line-height: 1.55; animation: msgFade .35s ease; word-wrap: break-word; position: relative; }
+    @keyframes msgFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .chat-msg.bot { align-self: flex-start; background: rgba(241,245,249,0.95); border: 1px solid rgba(15,23,42,0.06); border-bottom-left-radius: .25rem; color: #0f172a; }
+    html.dark .chat-msg.bot { background: rgba(30,41,59,.8); border: 1px solid rgba(148,163,184,.1); color: #e2e8f0; }
+    .chat-msg.user { align-self: flex-end; background: linear-gradient(135deg,#3b82f6,#6d28d9); border-bottom-right-radius: .25rem; color: white; }
+    .chat-msg .word { opacity: 0; animation: wordIn .25s forwards; }
+    @keyframes wordIn { to { opacity: 1; } }
+
+    .copy-btn {
+      position: absolute; top: -8px; right: -8px;
+      width: 28px; height: 28px; border-radius: 50%;
+      background: rgba(15,23,42,.9);
+      color: #e2e8f0; border: 1px solid rgba(148,163,184,.25);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; opacity: 0; transform: scale(.7);
+      transition: all .25s ease; z-index: 5;
+    }
+    html:not(.dark) .copy-btn { background: rgba(255,255,255,.95); color: #334155; border-color: rgba(15,23,42,.12); }
+    .chat-msg.bot:hover .copy-btn { opacity: 1; transform: scale(1); }
+    .copy-btn:hover { background: #3b82f6; color: white; border-color: #3b82f6; }
+    .copy-btn.copied { background: #10b981; color: white; border-color: #10b981; }
+
+    .chat-typing { display: flex; gap: 4px; padding: .75rem 1rem; align-self: flex-start; background: rgba(241,245,249,0.95); border-radius: 1rem; border-bottom-left-radius: .25rem; border: 1px solid rgba(15,23,42,.06); }
+    html.dark .chat-typing { background: rgba(30,41,59,.8); border: 1px solid rgba(148,163,184,.1); }
+    .chat-typing span { width: 8px; height: 8px; border-radius: 50%; background: #60a5fa; animation: typingBounce 1.4s ease-in-out infinite; }
+    .chat-typing span:nth-child(2) { animation-delay: .2s; }
+    .chat-typing span:nth-child(3) { animation-delay: .4s; }
+    @keyframes typingBounce { 0%,60%,100% { transform: translateY(0); opacity: .4; } 30% { transform: translateY(-6px); opacity: 1; } }
+
+    .quick-chip { font-size: .72rem; padding: .35rem .75rem; border-radius: 9999px; background: rgba(59,130,246,.1); border: 1px solid rgba(96,165,250,.25); color: #2563eb; cursor: pointer; transition: all .2s; white-space: nowrap; }
+    html.dark .quick-chip { color: #93c5fd; }
+    .quick-chip:hover { background: rgba(59,130,246,.2); color: #1d4ed8; transform: translateY(-1px); }
+    html.dark .quick-chip:hover { color: #bfdbfe; }
+
+    .museum-img { width: 100%; height: 220px; object-fit: cover; transition: transform .5s ease; background: #1e293b; }
+    .glass-card:hover .museum-img { transform: scale(1.05); }
+    .museum-img-wrapper { overflow: hidden; border-radius: 1rem 1rem 0 0; position: relative; }
+
+    .stat-badge { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .75rem; border-radius: 9999px; font-size: .7rem; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
+
+    .reveal { opacity: 0; transform: translateY(30px); transition: opacity .7s ease, transform .7s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    .mic-active { background: linear-gradient(135deg,#ef4444,#dc2626) !important; animation: pulseMic 1.2s infinite; }
+    @keyframes pulseMic { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.6); } 50% { box-shadow: 0 0 0 10px rgba(239,68,68,0); } }
+    .speaker-on { color: #3b82f6 !important; }
+    html.dark .speaker-on { color: #60a5fa !important; }
+
+    .theme-toggle {
+      width: 40px; height: 40px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(15,23,42,.06); color: #334155;
+      border: 1px solid rgba(15,23,42,.08);
+      cursor: pointer; transition: all .3s ease;
+    }
+    html.dark .theme-toggle { background: rgba(148,163,184,.1); color: #cbd5e1; border-color: rgba(148,163,184,.15); }
+    .theme-toggle:hover { transform: rotate(20deg) scale(1.08); background: rgba(59,130,246,.15); color: #3b82f6; }
+    html.dark .theme-toggle:hover { color: #60a5fa; }
+
+    .toast-container { position: fixed; bottom: 6rem; right: 1.5rem; z-index: 200; display: flex; flex-direction: column; gap: .5rem; pointer-events: none; }
+    .toast { background: rgba(15,23,42,.95); color: white; padding: .75rem 1rem; border-radius: .75rem; font-size: .8rem; box-shadow: 0 10px 30px rgba(0,0,0,.3); border: 1px solid rgba(148,163,184,.2); animation: toastIn .3s ease; pointer-events: auto; display: flex; align-items: center; gap: .5rem; max-width: 320px; }
+    html:not(.dark) .toast { background: rgba(255,255,255,.98); color: #0f172a; border-color: rgba(15,23,42,.1); }
+    .toast.success { border-left: 3px solid #10b981; }
+    .toast.error { border-left: 3px solid #ef4444; }
+    .toast.info { border-left: 3px solid #3b82f6; }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes toastOut { to { opacity: 0; transform: translateX(30px); } }
+    .toast.removing { animation: toastOut .3s ease forwards; }
+
+    @media (max-width: 640px) {
+      .chat-panel { width: calc(100vw - 2rem); right: -.5rem; height: 460px; }
+      .chat-widget { bottom: 1rem; right: 1rem; }
+      .toast-container { bottom: 5rem; right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="fluid-bg">
+    <div class="fluid-blob"></div>
+    <div class="fluid-blob"></div>
+    <div class="fluid-blob"></div>
+    <div class="fluid-blob"></div>
+  </div>
+
+  <canvas id="meteorCanvas"></canvas>
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- NAVBAR -->
+  <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-500 py-4 px-6 md:px-12">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <a href="#home" class="flex items-center gap-3 group">
+        <div class="relative">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+              <circle cx="12" cy="12" r="3"/>
+              <ellipse cx="12" cy="12" rx="10" ry="4.5" transform="rotate(-25 12 12)"/>
+              <circle cx="19" cy="7.5" r="1.5" fill="currentColor" stroke="none"/>
+            </svg>
+          </div>
+          <div class="absolute -top-1 -right-1 w-3 h-3 bg-cyan-400 rounded-full animate-pulse"></div>
+        </div>
+        <span class="text-xl font-bold tracking-tight text-adaptive">Relic<span class="gradient-text">Orbit</span> <span class="text-blue-500">3D</span></span>
+      </a>
+
+      <div class="hidden md:flex items-center gap-6">
+        <a href="#home" class="text-sm font-medium text-muted hover:text-blue-500 transition-colors">Home</a>
+        <a href="#museum" class="text-sm font-medium text-muted hover:text-blue-500 transition-colors">Museum</a>
+        <a href="#contact" class="text-sm font-medium text-muted hover:text-blue-500 transition-colors">Contact</a>
+        <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+          <svg id="iconSun" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <circle cx="12" cy="12" r="4"/>
+            <path stroke-linecap="round" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+          </svg>
+          <svg id="iconMoon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+          </svg>
+        </button>
+        <a href="#museum" class="px-5 py-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-semibold hover:shadow-lg hover:shadow-blue-500/30 transition-all hover:-translate-y-0.5">Explore Relics</a>
+      </div>
+
+      <div class="md:hidden flex items-center gap-2">
+        <button id="themeToggleMobile" class="theme-toggle" aria-label="Toggle theme">
+          <svg id="iconSunM" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <circle cx="12" cy="12" r="4"/>
+            <path stroke-linecap="round" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+          </svg>
+          <svg id="iconMoonM" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+          </svg>
+        </button>
+        <button id="mobileMenuBtn" class="p-2 text-muted hover:text-blue-500">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="mobileMenu" class="md:hidden hidden mt-4 pb-4 border-t border-adaptive">
+      <div class="flex flex-col gap-3 pt-4 px-2">
+        <a href="#home" class="text-sm font-medium text-muted hover:text-blue-500 py-2">Home</a>
+        <a href="#museum" class="text-sm font-medium text-muted hover:text-blue-500 py-2">Museum</a>
+        <a href="#contact" class="text-sm font-medium text-muted hover:text-blue-500 py-2">Contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="content-layer">
+
+    <!-- HERO -->
+    <section id="home" class="min-h-screen flex items-center pt-28 pb-16 px-6 md:px-12">
+      <div class="max-w-7xl mx-auto w-full">
+        <div class="grid lg:grid-cols-2 gap-12 items-center">
+          <div class="space-y-8">
+            <div class="reveal">
+              <span class="stat-badge bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                NASA Space Apps Challenge
+              </span>
+            </div>
+            <h1 class="reveal text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.1] tracking-tight text-adaptive">
+              <span class="glow-text">RelicOrbit</span><span class="gradient-text"> 3D</span>
+            </h1>
+            <p class="reveal text-xl sm:text-2xl font-light text-muted leading-relaxed">
+              Abandoned but not <span class="text-blue-500 font-medium">Forgotten</span>
+            </p>
+            <p class="reveal text-base text-muted leading-relaxed max-w-lg">
+              Journey through humanity's most distant footprints. Explore the silent sentinels left behind on the Moon and Mars — each a monument to human curiosity and engineering brilliance.
+            </p>
+            <div class="reveal flex flex-wrap gap-4">
+              <a href="#museum" class="px-7 py-3.5 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold text-sm hover:shadow-xl hover:shadow-blue-500/30 transition-all hover:-translate-y-1 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+                Explore the Museum
+              </a>
+              <a href="#contact" class="px-7 py-3.5 rounded-full border border-adaptive text-muted font-semibold text-sm hover:border-blue-500 hover:text-blue-500 transition-all hover:-translate-y-1">Contact Team</a>
+            </div>
+            <div class="reveal flex gap-8 pt-4">
+              <div><div class="text-3xl font-bold gradient-text">3</div><div class="text-xs text-subtle uppercase tracking-wider mt-1">Historic Relics</div></div>
+              <div class="w-px bg-slate-400/30"></div>
+              <div><div class="text-3xl font-bold gradient-text">2</div><div class="text-xs text-subtle uppercase tracking-wider mt-1">Celestial Bodies</div></div>
+              <div class="w-px bg-slate-400/30"></div>
+              <div><div class="text-3xl font-bold gradient-text">55+</div><div class="text-xs text-subtle uppercase tracking-wider mt-1">Years of Heritage</div></div>
+            </div>
+          </div>
+
+          <div class="reveal relative">
+            <div class="relative rounded-2xl overflow-hidden border border-adaptive shadow-2xl shadow-blue-500/10">
+              <img
+                id="heroImg"
+                src="https://www.nasa.gov/wp-content/uploads/static/history/alsj/a11/AS11-40-5927.jpg"
+                data-fallback1="https://images-assets.nasa.gov/image/as11-40-5927/as11-40-5927~orig.jpg"
+                data-fallback2="https://science.nasa.gov/wp-content/uploads/2023/04/apollo11-lm-1024x824.jpg"
+                alt="Apollo 11 Lunar Module on the Moon"
+                class="w-full h-[400px] lg:h-[500px] object-cover"
+                loading="eager"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+              <div class="absolute bottom-6 left-6 right-6">
+                <div class="flex items-center gap-2 text-xs text-blue-300 mb-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                  Tranquility Base, Moon
+                </div>
+                <p class="text-sm text-white font-medium drop-shadow-lg">Apollo 11 Lunar Module Eagle — July 20, 1969</p>
+              </div>
+            </div>
+            <div class="absolute -top-4 -right-4 bg-white/90 dark:bg-space-900/90 backdrop-blur-xl border border-blue-500/20 rounded-2xl px-5 py-4 shadow-xl animate-bounce" style="animation-duration:3s;">
+              <div class="text-xs text-subtle">Distance from Earth</div>
+              <div class="text-lg font-bold text-blue-500">384,400 km</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MUSEUM -->
+    <section id="museum" class="py-24 px-6 md:px-12">
+      <div class="max-w-7xl mx-auto">
+        <div class="text-center mb-16 reveal">
+          <span class="stat-badge bg-purple-500/10 text-purple-500 border border-purple-500/20 mb-4">
+            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6z"/></svg>
+            Museum & Archives
+          </span>
+          <h2 class="text-4xl md:text-5xl font-bold mb-4 text-adaptive">Relics of <span class="gradient-text">Exploration</span></h2>
+          <p class="text-muted max-w-2xl mx-auto text-base leading-relaxed">
+            Humanity's greatest adventures didn't all return home. These machines remain — silent witnesses to our first steps into the cosmos.
+          </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+          <!-- APOLLO 11 CARD -->
+          <article class="glass-card overflow-hidden reveal" data-relic="apollo11">
+            <div class="museum-img-wrapper">
+              <img
+                src="https://www.nasa.gov/wp-content/uploads/static/history/alsj/a11/AS11-40-5927.jpg"
+                data-fallback1="https://images-assets.nasa.gov/image/as11-40-5927/as11-40-5927~orig.jpg"
+                data-fallback2="https://science.nasa.gov/wp-content/uploads/2023/04/apollo11-lm-1024x824.jpg"
+                alt="Apollo 11 Lunar Module Descent Stage"
+                class="museum-img"
+                loading="lazy"
+              />
+            </div>
+            <div class="p-6 space-y-4">
+              <div class="flex items-center gap-2">
+                <span class="stat-badge bg-blue-500/10 text-blue-500 border border-blue-500/20">Moon</span>
+                <span class="stat-badge bg-slate-500/10 text-slate-500 border border-slate-500/20">1969</span>
+              </div>
+              <h3 class="text-xl font-bold text-adaptive">Apollo 11 LM Descent Stage</h3>
+              <p class="text-sm text-muted leading-relaxed">The descent stage of the Eagle lunar module that carried Neil Armstrong and Buzz Aldrin to the lunar surface. Left behind at Tranquility Base to reduce ascent weight.</p>
+              <div class="space-y-2 text-xs text-subtle">
+                <div class="flex items-center gap-2">
+                  <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  Deployed: July 20, 1969
+                </div>
+                <div class="flex items-center gap-2">
+                  <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                  0.674°N, 23.473°E — Mare Tranquillitatis
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 pt-2">
+                <button class="download-btn py-2.5 rounded-xl border border-blue-500/30 text-blue-500 text-xs font-semibold hover:bg-blue-500/10 transition-all flex items-center justify-center gap-1.5" data-nasa-id="as11-40-5927" data-filename="apollo11_lm_nasa.jpg">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                  Download
+                </button>
+                <a href="https://images.nasa.gov/details/as11-40-5927" target="_blank" rel="noopener" class="py-2.5 rounded-xl border border-adaptive text-muted text-xs font-semibold hover:border-blue-500 hover:text-blue-500 transition-all flex items-center justify-center gap-1.5">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                  NASA.gov
+                </a>
+              </div>
+
+              <button class="read-more-btn w-full py-2.5 rounded-xl border border-blue-500/30 text-blue-500 text-sm font-semibold hover:bg-blue-500/10 transition-all flex items-center justify-center gap-2" data-relic="apollo11">
+                Read More
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              </button>
+            </div>
+          </article>
+
+          <!-- CURIOSITY CARD -->
+          <article class="glass-card overflow-hidden reveal" data-relic="curiosity">
+            <div class="museum-img-wrapper">
+              <img
+                src="https://svs.gsfc.nasa.gov/vis/a030000/a030800/a030808/PIA20602_print.jpg"
+                data-fallback1="https://images-assets.nasa.gov/image/PIA16239/PIA16239~orig.jpg"
+                data-fallback2="https://science.nasa.gov/wp-content/uploads/2023/06/pia16239-curiosity-self-portrait-1041.jpg"
+                alt="Curiosity Rover Self-Portrait on Mars"
+                class="museum-img"
+                loading="lazy"
+              />
+            </div>
+            <div class="p-6 space-y-4">
+              <div class="flex items-center gap-2">
+                <span class="stat-badge bg-red-500/10 text-red-500 border border-red-500/20">Mars</span>
+                <span class="stat-badge bg-slate-500/10 text-slate-500 border border-slate-500/20">2012</span>
+              </div>
+              <h3 class="text-xl font-bold text-adaptive">Curiosity Rover</h3>
+              <p class="text-sm text-muted leading-relaxed">A car-sized robotic explorer that revolutionized our understanding of Mars. Still operational after a planned 2-year mission, now roaming Gale Crater for over a decade.</p>
+              <div class="space-y-2 text-xs text-subtle">
+                <div class="flex items-center gap-2">
+                  <svg class="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  Landed: August 6, 2012
+                </div>
+                <div class="flex items-center gap-2">
+                  <svg class="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                  4.589°S, 137.442°E — Gale Crater
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 pt-2">
+                <button class="download-btn py-2.5 rounded-xl border border-red-500/30 text-red-500 text-xs font-semibold hover:bg-red-500/10 transition-all flex items-center justify-center gap-1.5" data-nasa-id="PIA16239" data-filename="curiosity_rover_nasa.jpg">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                  Download
+                </button>
+                <a href="https://images.nasa.gov/details/PIA16239" target="_blank" rel="noopener" class="py-2.5 rounded-xl border border-adaptive text-muted text-xs font-semibold hover:border-red-500 hover:text-red-500 transition-all flex items-center justify-center gap-1.5">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                  NASA.gov
+                </a>
+              </div>
+
+              <button class="read-more-btn w-full py-2.5 rounded-xl border border-red-500/30 text-red-500 text-sm font-semibold hover:bg-red-500/10 transition-all flex items-center justify-center gap-2" data-relic="curiosity">
+                Read More
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              </button>
+            </div>
+          </article>
+
+          <!-- VIKING 1 CARD -->
+          <article class="glass-card overflow-hidden reveal" data-relic="viking1">
+            <div class="museum-img-wrapper">
+              <img
+                src="https://nssdc.gsfc.nasa.gov/image/planetary/mars/viking_lander_model.jpg"
+                data-fallback1="https://images-assets.nasa.gov/image/PIA00563/PIA00563~orig.jpg"
+                data-fallback2="https://science.nasa.gov/wp-content/uploads/2023/09/viking-lander-1-1024x768.jpg"
+                alt="Viking 1 Lander on Mars"
+                class="museum-img"
+                loading="lazy"
+              />
+            </div>
+            <div class="p-6 space-y-4">
+              <div class="flex items-center gap-2">
+                <span class="stat-badge bg-orange-500/10 text-orange-500 border border-orange-500/20">Mars</span>
+                <span class="stat-badge bg-slate-500/10 text-slate-500 border border-slate-500/20">1976</span>
+              </div>
+              <h3 class="text-xl font-bold text-adaptive">Viking 1 Lander</h3>
+              <p class="text-sm text-muted leading-relaxed">The first U.S. spacecraft to successfully land on Mars. Operated for over 6 years — far beyond its 90-day design life — conducting humanity's first on-site search for life.</p>
+              <div class="space-y-2 text-xs text-subtle">
+                <div class="flex items-center gap-2">
+                  <svg class="w-3.5 h-3.5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  Landed: July 20, 1976
+                </div>
+                <div class="flex items-center gap-2">
+                  <svg class="w-3.5 h-3.5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                  22.27°N, 49.97°W — Chryse Planitia
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 pt-2">
+                <button class="download-btn py-2.5 rounded-xl border border-orange-500/30 text-orange-500 text-xs font-semibold hover:bg-orange-500/10 transition-all flex items-center justify-center gap-1.5" data-nasa-id="PIA00563" data-filename="viking1_lander_nasa.jpg">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                  Download
+                </button>
+                <a href="https://images.nasa.gov/details/PIA00563" target="_blank" rel="noopener" class="py-2.5 rounded-xl border border-adaptive text-muted text-xs font-semibold hover:border-orange-500 hover:text-orange-500 transition-all flex items-center justify-center gap-1.5">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                  NASA.gov
+                </a>
+              </div>
+
+              <button class="read-more-btn w-full py-2.5 rounded-xl border border-orange-500/30 text-orange-500 text-sm font-semibold hover:bg-orange-500/10 transition-all flex items-center justify-center gap-2" data-relic="viking1">
+                Read More
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              </button>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="contact" class="py-24 px-6 md:px-12">
+      <div class="max-w-7xl mx-auto">
+        <div class="glass-card p-8 md:p-12 reveal">
+          <div class="grid lg:grid-cols-2 gap-12 items-center">
+            <div class="space-y-6">
+              <span class="stat-badge bg-cyan-500/10 text-cyan-500 border border-cyan-500/20">
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/></svg>
+                Get in Touch
+              </span>
+              <h2 class="text-4xl font-bold text-adaptive">Join the <span class="gradient-text">Mission</span></h2>
+              <p class="text-muted leading-relaxed">RelicOrbit 3D is an open-source project dedicated to preserving the legacy of space exploration. Whether you're a developer, researcher, or space enthusiast — we'd love to hear from you.</p>
+            </div>
+            <div class="space-y-5">
+              <a href="mailto:wagonsaron@gmail.com" class="flex items-center gap-4 p-4 rounded-xl bg-slate-500/5 border border-adaptive hover:border-blue-500/40 transition-all group">
+                <div class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
+                  <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                </div>
+                <div><div class="text-xs text-subtle">Email</div><div class="text-sm font-semibold text-adaptive group-hover:text-blue-500 transition-colors">wagonsaron@gmail.com</div></div>
+              </a>
+              <div class="flex items-center gap-4 p-4 rounded-xl bg-slate-500/5 border border-adaptive">
+                <div class="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                  <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                </div>
+                <div><div class="text-xs text-subtle">Location</div><div class="text-sm font-semibold text-adaptive">Addis Ababa, Ethiopia</div></div>
+              </div>
+              <div class="flex items-center gap-4 p-4 rounded-xl bg-slate-500/5 border border-adaptive">
+                <div class="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center">
+                  <svg class="w-5 h-5 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <div><div class="text-xs text-subtle">Response Time</div><div class="text-sm font-semibold text-adaptive">Within 24 hours</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="py-8 px-6 border-t border-adaptive">
+      <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-2 text-sm text-subtle">
+          <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="10" ry="4.5" transform="rotate(-25 12 12)"/></svg>
+          </div>
+          <span>RelicOrbit 3D — NASA Space Apps Challenge</span>
+        </div>
+        <div class="text-xs text-subtle">Data sourced from NASA Open Data. Built with ❤ for space exploration.</div>
+      </div>
+    </footer>
+  </main>
+
+  <!-- MODAL -->
+  <div id="modalOverlay" class="modal-overlay">
+    <div class="modal-content glass-card p-0">
+      <div class="relative">
+        <div id="modalMediaContainer" class="w-full h-64 bg-slate-800 rounded-t-[1.25rem] overflow-hidden">
+          <img id="modalImage" src="" alt="" class="w-full h-full object-cover" />
+          <video id="modalVideo" class="w-full h-full object-cover hidden" controls playsinline></video>
+        </div>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent rounded-t-[1.25rem] pointer-events-none"></div>
+        <button id="modalClose" class="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+        <div class="absolute bottom-4 left-6 right-6 z-10">
+          <span id="modalBadge" class="stat-badge bg-blue-500/20 text-blue-200 border border-blue-500/30 mb-2"></span>
+          <h3 id="modalTitle" class="text-2xl font-bold text-white"></h3>
+        </div>
+      </div>
+      <div class="p-6 space-y-5">
+        <div id="modalTelemetry" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+        <div>
+          <h4 class="text-sm font-semibold text-adaptive mb-2 flex items-center gap-2">
+            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Mission Overview
+          </h4>
+          <p id="modalDescription" class="text-sm text-muted leading-relaxed"></p>
+        </div>
+        <div>
+          <h4 class="text-sm font-semibold text-adaptive mb-3 flex items-center gap-2">
+            <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+            Key Telemetry & Facts
+          </h4>
+          <ul id="modalFacts" class="space-y-2"></ul>
+        </div>
+        <div class="pt-2 border-t border-adaptive flex flex-wrap gap-2">
+          <button id="modalDownload" class="download-btn py-2.5 px-4 rounded-xl bg-blue-500 text-white text-xs font-semibold hover:bg-blue-600 transition-all flex items-center gap-2">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Download from NASA
+          </button>
+          <a id="modalNasaLink" href="#" target="_blank" rel="noopener" class="py-2.5 px-4 rounded-xl border border-adaptive text-muted text-xs font-semibold hover:border-blue-500 hover:text-blue-500 transition-all flex items-center gap-2">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            View on NASA.gov
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI TUTOR -->
+  <div class="chat-widget">
+    <div id="chatPanel" class="chat-panel">
+      <div class="px-5 py-4 border-b border-adaptive flex items-center gap-3">
+        <div class="relative">
+          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"/>
+            </svg>
+          </div>
+          <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-white dark:border-space-900"></div>
+        </div>
+        <div class="flex-1">
+          <div class="text-sm font-semibold text-adaptive">AI Tutor</div>
+          <div class="text-[10px] text-green-500">Online — Ask about space relics</div>
+        </div>
+        <button id="speakerToggle" class="w-8 h-8 rounded-full bg-slate-500/10 flex items-center justify-center text-subtle hover:text-blue-500 transition-colors" title="Toggle voice output">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M6 10v4a1 1 0 001 1h2l3.5 3.5a.5.5 0 00.5-.5V6a.5.5 0 00-.5-.5L9 9H7a1 1 0 00-1 1z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div id="chatMessages" class="chat-messages">
+        <div class="chat-msg bot">
+          👋 Welcome to <strong>RelicOrbit 3D</strong>! I'm your AI tutor. Ask me anything about the abandoned space artifacts in our museum — Apollo 11, Curiosity, Viking 1, or space heritage in general.
+        </div>
+      </div>
+
+      <div id="quickChips" class="px-4 pb-2 flex gap-2 overflow-x-auto" style="scrollbar-width:none;">
+        <button class="quick-chip" data-q="Where is Apollo 11?">Where is Apollo 11?</button>
+        <button class="quick-chip" data-q="Tell me about Curiosity">Curiosity facts</button>
+        <button class="quick-chip" data-q="Compare Apollo and Viking">Compare relics</button>
+        <button class="quick-chip" data-q="Why were they abandoned?">Why abandoned?</button>
+      </div>
+
+      <div class="px-4 py-3 border-t border-adaptive">
+        <form id="chatForm" class="flex items-center gap-2">
+          <button type="button" id="micBtn" class="w-10 h-10 rounded-full bg-slate-500/10 border border-adaptive flex items-center justify-center text-subtle hover:text-blue-500 transition-all flex-shrink-0" title="Voice input">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-14 0m7 7v3m-4 0h8M12 4a3 3 0 00-3 3v4a3 3 0 006 0V7a3 3 0 00-3-3z"/>
+            </svg>
+          </button>
+          <input id="chatInput" type="text" placeholder="Ask about a space relic..." class="flex-1 bg-slate-500/10 border border-adaptive rounded-full px-4 py-2.5 text-sm text-adaptive placeholder-slate-400 outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all" autocomplete="off" />
+          <button type="submit" class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white hover:shadow-lg hover:shadow-blue-500/30 transition-all flex-shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <button id="chatToggle" class="chat-toggle" aria-label="Toggle AI Tutor">
+      <svg id="chatIconOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+      <svg id="chatIconClose" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+  </div>
+
+  <script>
+    /* ============================================================
+       0. THEME SYSTEM
+       ============================================================ */
+    (function () {
+      const root = document.documentElement;
+      const btns = [document.getElementById('themeToggle'), document.getElementById('themeToggleMobile')];
+      const sunIcons = [document.getElementById('iconSun'), document.getElementById('iconSunM')];
+      const moonIcons = [document.getElementById('iconMoon'), document.getElementById('iconMoonM')];
+
+      function paint() {
+        const isDark = root.classList.contains('dark');
+        sunIcons.forEach(i => i && i.classList.toggle('hidden', !isDark));
+        moonIcons.forEach(i => i && i.classList.toggle('hidden', isDark));
+      }
+      function toggle() {
+        root.classList.toggle('dark');
+        localStorage.setItem('relicorbit-theme', root.classList.contains('dark') ? 'dark' : 'light');
+        paint();
+      }
+      btns.forEach(b => b && b.addEventListener('click', toggle));
+      paint();
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (!localStorage.getItem('relicorbit-theme')) {
+          root.classList.toggle('dark', e.matches);
+          paint();
+        }
+      });
+    })();
+
+    /* ============================================================
+       1. TOAST NOTIFICATIONS
+       ============================================================ */
+    const showToast = (function () {
+      const container = document.getElementById('toastContainer');
+      return function (message, type = 'info', duration = 3000) {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        const icons = {
+          success: '<svg class="w-4 h-4 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>',
+          error: '<svg class="w-4 h-4 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>',
+          info: '<svg class="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+        };
+        toast.innerHTML = `${icons[type] || icons.info}<span>${message}</span>`;
+        container.appendChild(toast);
+        setTimeout(() => {
+          toast.classList.add('removing');
+          setTimeout(() => toast.remove(), 300);
+        }, duration);
+      };
+    })();
+
+    /* ============================================================
+       2. NASA IMAGE DOWNLOADER
+       ============================================================ */
+    async function downloadFromNASA(nasaId, filename, buttonEl) {
+      const originalHtml = buttonEl ? buttonEl.innerHTML : null;
+      if (buttonEl) {
+        buttonEl.disabled = true;
+        buttonEl.innerHTML = '<svg class="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="4" stroke-dasharray="32" stroke-dashoffset="16"/></svg> Fetching...';
+      }
+      showToast(`Fetching ${nasaId} from NASA...`, 'info', 2000);
+
+      try {
+        const manifestRes = await fetch(`https://images-api.nasa.gov/asset/${nasaId}`);
+        if (!manifestRes.ok) throw new Error('Manifest fetch failed');
+        const manifest = await manifestRes.json();
+
+        let origUrl = null;
+        const items = manifest.collection?.items || [];
+        for (const item of items) {
+          if (item.href && item.href.includes('~orig')) { origUrl = item.href; break; }
+          if (item.href && item.href.includes('~large') && !origUrl) origUrl = item.href;
+        }
+        if (!origUrl) throw new Error('No original asset found');
+
+        const blobRes = await fetch(origUrl);
+        if (!blobRes.ok) throw new Error('Blob fetch failed');
+        const blob = await blobRes.blob();
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename || `${nasaId}_nasa.jpg`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+        showToast(`Downloaded ${a.download}`, 'success', 4000);
+      } catch (err) {
+        console.warn('NASA download failed:', err);
+        showToast('Could not fetch from NASA. Opening NASA.gov instead...', 'error', 4000);
+        setTimeout(() => {
+          window.open(`https://images.nasa.gov/details/${nasaId}`, '_blank');
+        }, 800);
+      } finally {
+        if (buttonEl && originalHtml) {
+          buttonEl.disabled = false;
+          buttonEl.innerHTML = originalHtml;
+        }
+      }
+    }
+
+    document.querySelectorAll('.download-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const nasaId = btn.dataset.nasaId;
+        const filename = btn.dataset.filename;
+        if (nasaId) downloadFromNASA(nasaId, filename, btn);
+      });
+    });
+
+    /* ============================================================
+       3. IMAGE FALLBACK CHAIN
+       ============================================================ */
+    (function () {
+      document.querySelectorAll('img[data-fallback1]').forEach(img => {
+        img.addEventListener('error', function handler() {
+          if (!this.dataset.fallback1Used && this.dataset.fallback1) {
+            this.dataset.fallback1Used = '1';
+            this.src = this.dataset.fallback1;
+          } else if (!this.dataset.fallback2Used && this.dataset.fallback2) {
+            this.dataset.fallback2Used = '1';
+            this.src = this.dataset.fallback2;
+          } else {
+            this.removeEventListener('error', handler);
+          }
+        });
+      });
+    })();
+
+    /* ============================================================
+       4. BLACK HOLE + METEORS + ASTEROIDS (unified canvas engine)
+       ============================================================ */
+    (function () {
+      const canvas = document.getElementById('meteorCanvas');
+      const ctx = canvas.getContext('2d');
+      let width, height, cx, cy;
+      let meteors = [], asteroids = [], infall = [], stars = [];
+      let raf, t0 = performance.now();
+
+      // Black hole parameters
+      const BH = {
+        radius: 70,          // event horizon radius (set on resize)
+        diskInner: 1.5,      // multiples of BH.radius
+        diskOuter: 3.4,
+        diskThickness: 0.28,
+        tilt: -0.38,         // radians, slight tilt of the disk
+        hueBase: 28,         // orange
+      };
+
+      const neonColors = [[96,165,250],[139,92,246],[34,211,238],[59,130,246],[168,85,247],[45,212,191],[244,114,182]];
+      const rc = () => neonColors[Math.floor(Math.random() * neonColors.length)];
+
+      function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        cx = width / 2;
+        cy = height / 2;
+        // Scale BH radius with viewport
+        BH.radius = Math.min(width, height) * 0.085;
+        if (BH.radius < 55) BH.radius = 55;
+        if (BH.radius > 120) BH.radius = 120;
+      }
+
+      /* ---------- STARFIELD (subtle static background) ---------- */
+      function initStars() {
+        stars = [];
+        const count = Math.min(220, Math.floor((width * height) / 9000));
+        for (let i = 0; i < count; i++) {
+          stars.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            r: Math.random() * 1.1 + 0.2,
+            a: Math.random() * 0.5 + 0.15,
+            tw: Math.random() * Math.PI * 2,
+            tws: 0.003 + Math.random() * 0.008,
+          });
+        }
+      }
+
+      /* ---------- METEORS (same as before, layered above BH) ---------- */
+      class Meteor {
+        constructor() { this.reset(); }
+        reset() {
+          const edge = Math.floor(Math.random() * 4);
+          const speed = 1.6 + Math.random() * 3.4;
+          const ang = (Math.random() * 0.6 + 0.2) * (Math.random() > 0.5 ? 1 : -1);
+          if (edge === 0) { this.x = Math.random() * width; this.y = -50; this.vx = Math.sin(ang) * speed; this.vy = Math.cos(ang) * speed; }
+          else if (edge === 1) { this.x = width + 50; this.y = Math.random() * height; this.vx = -Math.cos(ang) * speed; this.vy = Math.sin(ang) * speed; }
+          else if (edge === 2) { this.x = Math.random() * width; this.y = height + 50; this.vx = Math.sin(ang) * speed; this.vy = -Math.cos(ang) * speed; }
+          else { this.x = -50; this.y = Math.random() * height; this.vx = Math.cos(ang) * speed; this.vy = Math.sin(ang) * speed; }
+          this.size = 1 + Math.random() * 2.4;
+          this.trail = 30 + Math.random() * 80;
+          this.color = rc();
+          this.alpha = 0.6 + Math.random() * 0.4;
+          this.life = 1;
+          this.decay = 0.001 + Math.random() * 0.003;
+          this.glow = 3 + Math.random() * 6;
+        }
+        update() {
+          this.x += this.vx; this.y += this.vy; this.life -= this.decay;
+          if (this.x < -200 || this.x > width + 200 || this.y < -200 || this.y > height + 200 || this.life <= 0) this.reset();
+        }
+        draw() {
+          const [r,g,b] = this.color;
+          const a = this.alpha * Math.min(this.life * 2, 1);
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * this.glow);
+          grad.addColorStop(0, `rgba(${r},${g},${b},${a})`);
+          grad.addColorStop(0.4, `rgba(${r},${g},${b},${a * 0.4})`);
+          grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+          ctx.fillStyle = grad;
+          ctx.beginPath(); ctx.arc(this.x, this.y, this.size * this.glow, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = `rgba(255,255,255,${a * 0.9})`;
+          ctx.beginPath(); ctx.arc(this.x, this.y, this.size * 0.6, 0, Math.PI * 2); ctx.fill();
+          const tx = this.x - this.vx * this.trail, ty = this.y - this.vy * this.trail;
+          const tg = ctx.createLinearGradient(this.x, this.y, tx, ty);
+          tg.addColorStop(0, `rgba(${r},${g},${b},${a * 0.8})`);
+          tg.addColorStop(0.3, `rgba(${r},${g},${b},${a * 0.3})`);
+          tg.addColorStop(1, `rgba(${r},${g},${b},0)`);
+          ctx.strokeStyle = tg; ctx.lineWidth = this.size * 1.5; ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(tx, ty); ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      /* ---------- ASTEROIDS ---------- */
+      class Asteroid {
+        constructor() { this.reset(); }
+        reset() {
+          this.x = Math.random() * width; this.y = Math.random() * height;
+          this.size = 0.5 + Math.random() * 2;
+          this.speed = 0.15 + Math.random() * 0.5;
+          this.angle = Math.random() * Math.PI * 2;
+          this.rot = Math.random() * Math.PI * 2;
+          this.rotSpeed = (Math.random() - 0.5) * 0.02;
+          this.color = rc();
+          this.alpha = 0.15 + Math.random() * 0.25;
+          const verts = Math.floor(5 + Math.random() * 4);
+          this.shape = [];
+          for (let i = 0; i < verts; i++) {
+            const a = (i / verts) * Math.PI * 2;
+            const rad = this.size * (0.7 + Math.random() * 0.6);
+            this.shape.push({ x: Math.cos(a) * rad, y: Math.sin(a) * rad });
+          }
+        }
+        update() {
+          this.x += Math.cos(this.angle) * this.speed;
+          this.y += Math.sin(this.angle) * this.speed;
+          this.rot += this.rotSpeed;
+          if (this.x < -100) this.x = width + 100;
+          if (this.x > width + 100) this.x = -100;
+          if (this.y < -100) this.y = height + 100;
+          if (this.y > height + 100) this.y = -100;
+          if (Math.random() < 0.002) this.angle += (Math.random() - 0.5) * 0.5;
+        }
+        draw() {
+          const [r,g,b] = this.color;
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.translate(this.x, this.y);
+          ctx.rotate(this.rot);
+          ctx.globalAlpha = this.alpha;
+          const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, this.size * 6);
+          glow.addColorStop(0, `rgba(${r},${g},${b},0.15)`);
+          glow.addColorStop(1, `rgba(${r},${g},${b},0)`);
+          ctx.fillStyle = glow;
+          ctx.beginPath(); ctx.arc(0, 0, this.size * 6, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(this.shape[0].x, this.shape[0].y);
+          for (let i = 1; i < this.shape.length; i++) ctx.lineTo(this.shape[i].x, this.shape[i].y);
+          ctx.closePath();
+          ctx.strokeStyle = `rgba(${r},${g},${b},0.5)`;
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+          ctx.fillStyle = `rgba(${r},${g},${b},0.08)`;
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      /* ---------- INFALLING DEBRIS (spiral into the black hole) ---------- */
+      class InfallParticle {
+        constructor() { this.reset(); }
+        reset() {
+          // Start at disk outer edge, random angle
+          const angle = Math.random() * Math.PI * 2;
+          const rOuter = BH.radius * (BH.diskOuter + 0.6);
+          this.r = rOuter;
+          this.angle = angle;
+          this.baseSpeed = 0.012 + Math.random() * 0.02;
+          this.size = 0.6 + Math.random() * 1.6;
+          this.hue = BH.hueBase + (Math.random() - 0.5) * 40;
+          this.alpha = 0.5 + Math.random() * 0.5;
+          this.verticalOffset = (Math.random() - 0.5) * BH.radius * 0.5;
+          this.spin = (Math.random() > 0.5 ? 1 : -1) * this.baseSpeed;
+          this.decay = 0.0015 + Math.random() * 0.002;
+          this.alive = true;
+        }
+        update(dt) {
+          // Spin faster as it gets closer (angular momentum conservation)
+          const t = this.r / (BH.radius * BH.diskOuter);
+          const speedBoost = 1 + (1 - t) * 3;
+          this.angle += this.spin * speedBoost;
+          // Slowly spiral inward
+          this.r -= this.decay * BH.radius * 2.2 * dt;
+          if (this.r < BH.radius * 0.95) {
+            this.alive = false;
+            return;
+          }
+        }
+        draw() {
+          const x = cx + Math.cos(this.angle) * this.r;
+          // Vertical squeeze for disk look
+          const y = cy + Math.sin(this.angle) * this.r * BH.diskThickness + this.verticalOffset;
+
+          // Fade near horizon and outer edge
+          const t = this.r / (BH.radius * BH.diskOuter);
+          const fadeInner = Math.min(1, (this.r / BH.radius - 0.9) * 1.5);
+          const fadeOuter = Math.min(1, (1 - t) * 3);
+          const a = this.alpha * Math.max(0, Math.min(fadeInner, fadeOuter));
+
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          const grad = ctx.createRadialGradient(x, y, 0, x, y, this.size * 5);
+          grad.addColorStop(0, `hsla(${this.hue}, 100%, 75%, ${a})`);
+          grad.addColorStop(0.4, `hsla(${this.hue}, 100%, 60%, ${a * 0.5})`);
+          grad.addColorStop(1, `hsla(${this.hue}, 100%, 50%, 0)`);
+          ctx.fillStyle = grad;
+          ctx.beginPath(); ctx.arc(x, y, this.size * 5, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = `hsla(${this.hue}, 100%, 92%, ${a})`;
+          ctx.beginPath(); ctx.arc(x, y, this.size * 0.7, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      /* ---------- BLACK HOLE RENDERING ---------- */
+      function drawBlackHole(time) {
+        const R = BH.radius;
+        const tilt = BH.tilt;
+
+        // ---------- 1. Outer gravitational glow ----------
+        const haloR = R * 6.5;
+        const halo = ctx.createRadialGradient(cx, cy, R * 0.9, cx, cy, haloR);
+        halo.addColorStop(0, 'rgba(255, 170, 60, 0.22)');
+        halo.addColorStop(0.25, 'rgba(255, 130, 40, 0.10)');
+        halo.addColorStop(0.6, 'rgba(120, 40, 180, 0.05)');
+        halo.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = halo;
+        ctx.beginPath(); ctx.arc(cx, cy, haloR, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+
+        // ---------- 2. Accretion disk (tilted ellipse) ----------
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(tilt);
+
+        // Disk base — layered gradients to fake turbulence
+        const inner = R * BH.diskInner;
+        const outer = R * BH.diskOuter;
+
+        // Multiple color bands for realism
+        const bands = [
+          { from: 1.00, to: 1.35, c1: 'rgba(255, 245, 220, 0.85)', c2: 'rgba(255, 200, 130, 0.55)' },
+          { from: 1.30, to: 1.85, c1: 'rgba(255, 200, 110, 0.7)',  c2: 'rgba(255, 140, 50, 0.45)' },
+          { from: 1.80, to: 2.60, c1: 'rgba(255, 140, 50, 0.5)',   c2: 'rgba(220, 80, 30, 0.28)' },
+          { from: 2.50, to: 3.40, c1: 'rgba(200, 70, 30, 0.28)',   c2: 'rgba(140, 40, 100, 0.08)' },
+        ];
+
+        ctx.globalCompositeOperation = 'lighter';
+        for (const b of bands) {
+          const r0 = R * b.from, r1 = R * b.to;
+          const g = ctx.createRadialGradient(0, 0, r0, 0, 0, r1);
+          g.addColorStop(0, b.c1);
+          g.addColorStop(1, b.c2);
+          ctx.save();
+          // Squash vertically to fake perspective
+          ctx.scale(1, BH.diskThickness);
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(0, 0, r1, 0, Math.PI * 2);
+          ctx.arc(0, 0, r0, 0, Math.PI * 2, true);
+          ctx.fill('evenodd');
+          ctx.restore();
+        }
+
+        // Bright turbulent streaks
+        const streakCount = 42;
+        for (let i = 0; i < streakCount; i++) {
+          const t = i / streakCount;
+          const angle = t * Math.PI * 2 + time * 0.00035;
+          const r = R * (BH.diskInner + Math.random() * (BH.diskOuter - BH.diskInner));
+          const x = Math.cos(angle) * r;
+          const y = Math.sin(angle) * r * BH.diskThickness;
+          const len = R * (0.05 + Math.random() * 0.22);
+          const w = 0.6 + Math.random() * 1.6;
+          const hue = BH.hueBase + (Math.random() - 0.5) * 50;
+          const a = 0.15 + Math.random() * 0.35;
+
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(angle + Math.PI / 2);
+          const sg = ctx.createLinearGradient(-len, 0, len, 0);
+          sg.addColorStop(0, `hsla(${hue}, 100%, 60%, 0)`);
+          sg.addColorStop(0.5, `hsla(${hue}, 100%, 75%, ${a})`);
+          sg.addColorStop(1, `hsla(${hue}, 100%, 60%, 0)`);
+          ctx.strokeStyle = sg;
+          ctx.lineWidth = w;
+          ctx.beginPath();
+          ctx.moveTo(-len, 0);
+          ctx.lineTo(len, 0);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        ctx.restore();
+
+        // ---------- 3. Photon ring (thin bright circle) ----------
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        const photon = ctx.createRadialGradient(cx, cy, R * 1.02, cx, cy, R * 1.16);
+        photon.addColorStop(0, 'rgba(255, 240, 200, 0)');
+        photon.addColorStop(0.35, 'rgba(255, 240, 200, 0.9)');
+        photon.addColorStop(0.6, 'rgba(255, 190, 100, 0.4)');
+        photon.addColorStop(1, 'rgba(255, 150, 50, 0)');
+        ctx.fillStyle = photon;
+        ctx.beginPath(); ctx.arc(cx, cy, R * 1.2, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+
+        // ---------- 4. Event horizon (absolute black disk) ----------
+        ctx.save();
+        const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+        coreGrad.addColorStop(0, '#000000');
+        coreGrad.addColorStop(0.85, '#000000');
+        coreGrad.addColorStop(1, 'rgba(0,0,0,1)');
+        ctx.fillStyle = coreGrad;
+        ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+
+        // ---------- 5. Gravitational lensing — top arc over horizon ----------
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(tilt);
+        ctx.globalCompositeOperation = 'lighter';
+        const arcR = R * 1.28;
+        for (let i = 0; i < 3; i++) {
+          const a0 = -Math.PI * 0.15 - i * 0.05;
+          const a1 = Math.PI * 1.15 + i * 0.05;
+          ctx.strokeStyle = `rgba(255, 220, 160, ${0.35 - i * 0.09})`;
+          ctx.lineWidth = R * (0.09 - i * 0.02);
+          ctx.beginPath();
+          ctx.ellipse(0, 0, arcR + i * 2, arcR * BH.diskThickness + i * 1.5, 0, a0, a1);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        // ---------- 6. Inner core glow just outside horizon ----------
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        const innerGlow = ctx.createRadialGradient(cx, cy, R * 0.98, cx, cy, R * 1.35);
+        innerGlow.addColorStop(0, 'rgba(255, 210, 140, 0.35)');
+        innerGlow.addColorStop(0.5, 'rgba(255, 140, 60, 0.15)');
+        innerGlow.addColorStop(1, 'rgba(255, 100, 40, 0)');
+        ctx.fillStyle = innerGlow;
+        ctx.beginPath(); ctx.arc(cx, cy, R * 1.4, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+
+      /* ---------- INIT ---------- */
+      function init() {
+        resize();
+        initStars();
+        meteors = [];
+        asteroids = [];
+        infall = [];
+
+        const mc = Math.min(18, Math.floor(width / 80));
+        for (let i = 0; i < mc; i++) {
+          const m = new Meteor();
+          m.x += m.vx * Math.random() * 200;
+          m.y += m.vy * Math.random() * 200;
+          meteors.push(m);
+        }
+        const ac = Math.min(22, Math.floor(width / 70));
+        for (let i = 0; i < ac; i++) asteroids.push(new Asteroid());
+
+        const ic = Math.min(260, Math.floor(width / 6));
+        for (let i = 0; i < ic; i++) infall.push(new InfallParticle());
+      }
+
+      let lastT = performance.now();
+
+      function animate(now) {
+        const dt = Math.min(2.5, (now - lastT) / 16.67); // normalize to ~60fps
+        lastT = now;
+        const time = now - t0;
+
+        // Clear
+        ctx.clearRect(0, 0, width, height);
+
+        // 1. Static stars (twinkle)
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        for (const s of stars) {
+          s.tw += s.tws * dt;
+          const a = s.a * (0.6 + Math.sin(s.tw) * 0.4);
+          ctx.fillStyle = `rgba(255,255,255,${a})`;
+          ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
+
+        // 2. BLACK HOLE (drawn first, behind everything else)
+        drawBlackHole(time);
+
+        // 3. Infalling debris
+        for (let i = infall.length - 1; i >= 0; i--) {
+          const p = infall[i];
+          p.update(dt);
+          if (!p.alive) {
+            infall[i] = new InfallParticle();
+          } else {
+            p.draw();
+          }
+        }
+
+        // 4. Asteroids
+        for (const a of asteroids) { a.update(); a.draw(); }
+
+        // 5. Meteors (top layer, brightest)
+        for (const m of meteors) { m.update(); m.draw(); }
+
+        raf = requestAnimationFrame(animate);
+      }
+
+      // Resize handling with debounce
+      let rT;
+      window.addEventListener('resize', () => {
+        clearTimeout(rT);
+        rT = setTimeout(() => {
+          cancelAnimationFrame(raf);
+          init();
+          raf = requestAnimationFrame(animate);
+        }, 200);
+      });
+
+      // Pause animation when tab is hidden (saves CPU/battery)
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          cancelAnimationFrame(raf);
+        } else {
+          lastT = performance.now();
+          raf = requestAnimationFrame(animate);
+        }
+      });
+
+      init();
+      raf = requestAnimationFrame(animate);
+    })();
+
+    /* ============================================================
+       5. NAVBAR
+       ============================================================ */
+    (function () {
+      const navbar = document.getElementById('navbar');
+      const btn = document.getElementById('mobileMenuBtn');
+      const menu = document.getElementById('mobileMenu');
+      window.addEventListener('scroll', () => {
+        navbar.classList.toggle('navbar-scrolled', window.scrollY > 50);
+      });
+      btn.addEventListener('click', () => menu.classList.toggle('hidden'));
+      menu.querySelectorAll('a').forEach(l => l.addEventListener('click', () => menu.classList.add('hidden')));
+    })();
+
+    /* ============================================================
+       6. SCROLL REVEAL
+       ============================================================ */
+    (function () {
+      const obs = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+      }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+      document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+    })();
+
+    /* ============================================================
+       7. MODAL / TELEMETRY (with video support)
+       ============================================================ */
+    (function () {
+      const overlay = document.getElementById('modalOverlay');
+      const mImg = document.getElementById('modalImage');
+      const mVideo = document.getElementById('modalVideo');
+      const mTitle = document.getElementById('modalTitle');
+      const mBadge = document.getElementById('modalBadge');
+      const mTel = document.getElementById('modalTelemetry');
+      const mDesc = document.getElementById('modalDescription');
+      const mFacts = document.getElementById('modalFacts');
+      const mClose = document.getElementById('modalClose');
+      const mDownload = document.getElementById('modalDownload');
+      const mNasaLink = document.getElementById('modalNasaLink');
+
+      const data = {
+        apollo11: {
+          title: 'Apollo 11 LM Descent Stage',
+          badge: 'Lunar Relic — 1969',
+          image: 'https://www.nasa.gov/wp-content/uploads/static/history/alsj/a11/AS11-40-5927.jpg',
+          imageFallback1: 'https://images-assets.nasa.gov/image/as11-40-5927/as11-40-5927~orig.jpg',
+          imageFallback2: 'https://science.nasa.gov/wp-content/uploads/2023/04/apollo11-lm-1024x824.jpg',
+          nasaId: 'as11-40-5927',
+          nasaPage: 'https://images.nasa.gov/details/as11-40-5927',
+          video: null,
+          videoPoster: null,
+          telemetry: [
+            { label: 'Landed', value: 'July 20, 1969' },
+            { label: 'Location', value: 'Mare Tranquillitatis' },
+            { label: 'Coordinates', value: '0.674°N, 23.473°E' },
+            { label: 'Dry Mass', value: '~2,034 kg' },
+            { label: 'Propellant', value: '~8,248 kg' },
+            { label: 'Total LM', value: '~15,103 kg' },
+            { label: 'Crew', value: 'Armstrong & Aldrin' },
+            { label: 'Status', value: 'Abandoned — On Surface' },
+          ],
+          description: 'The descent stage of the Eagle lunar module was intentionally left behind at Tranquility Base when the ascent stage lifted off to reunite with the Command Module. It served as the launch platform for the ascent stage and carried the descent engine, landing gear, scientific instruments, and the famous plaque reading "Here men from the planet Earth first set foot upon the Moon."',
+          facts: [
+            'Left behind to reduce the mass of the ascent stage for the journey back to lunar orbit.',
+            'Carried the Lunar Laser Ranging RetroReflector (LRRR) — still used today to measure the Earth–Moon distance with millimeter precision.',
+            'Also deployed the Passive Seismic Experiment Package (PSEP) to monitor moonquakes.',
+            'The descent stage remains the most visited — and most significant — archaeological site on the Moon.',
+            'Its exact position was mapped by the Lunar Reconnaissance Orbiter Camera (LROC) in 2012.',
+          ],
+        },
+        curiosity: {
+          title: 'Curiosity Rover',
+          badge: 'Martian Explorer — 2012',
+          image: 'https://svs.gsfc.nasa.gov/vis/a030000/a030800/a030808/PIA20602_print.jpg',
+          imageFallback1: 'https://images-assets.nasa.gov/image/PIA16239/PIA16239~orig.jpg',
+          imageFallback2: 'https://science.nasa.gov/wp-content/uploads/2023/06/pia16239-curiosity-self-portrait-1041.jpg',
+          nasaId: 'PIA16239',
+          nasaPage: 'https://images.nasa.gov/details/PIA16239',
+          video: null,
+          videoPoster: null,
+          telemetry: [
+            { label: 'Landed', value: 'August 6, 2012' },
+            { label: 'Location', value: 'Gale Crater, Mars' },
+            { label: 'Coordinates', value: '4.589°S, 137.442°E' },
+            { label: 'Length', value: '2.9 m' },
+            { label: 'Width', value: '2.7 m' },
+            { label: 'Height', value: '2.2 m' },
+            { label: 'Mass', value: '899 kg' },
+            { label: 'Status', value: 'Operational' },
+          ],
+          description: 'Curiosity is a car-sized robotic rover exploring Gale Crater on Mars as part of NASA\'s Mars Science Laboratory mission. Unlike its predecessors, Curiosity is powered by a radioisotope thermoelectric generator (RTG), allowing it to operate for many years. Its primary mission is to investigate whether Mars ever had conditions suitable for microbial life.',
+          facts: [
+            'Launched on November 26, 2011, and landed on August 6, 2012, after a 560-million-kilometer journey.',
+            'Its mission was planned for one Martian year (687 Earth days) but has been extended indefinitely.',
+            'Has driven over 29 kilometers (18 miles) across the Martian surface.',
+            'Carries a laser spectrometer (ChemCam) that can vaporize rock at a distance of up to 7 meters.',
+            'Discovered definitive evidence that Gale Crater once held a lake that could have supported microbial life.',
+          ],
+        },
+        viking1: {
+          title: 'Viking 1 Lander',
+          badge: 'Mars Pioneer — 1976',
+          image: 'https://nssdc.gsfc.nasa.gov/image/planetary/mars/viking_lander_model.jpg',
+          imageFallback1: 'https://images-assets.nasa.gov/image/PIA00563/PIA00563~orig.jpg',
+          imageFallback2: 'https://science.nasa.gov/wp-content/uploads/2023/09/viking-lander-1-1024x768.jpg',
+          nasaId: 'PIA00563',
+          nasaPage: 'https://images.nasa.gov/details/PIA00563',
+          video: null,
+          videoPoster: null,
+          telemetry: [
+            { label: 'Landed', value: 'July 20, 1976' },
+            { label: 'Location', value: 'Chryse Planitia' },
+            { label: 'Coordinates', value: '22.27°N, 49.97°W' },
+            { label: 'Landed Mass', value: '~572 kg' },
+            { label: 'Design Life', value: '90 days' },
+            { label: 'Operated', value: '2,307 days' },
+            { label: 'Final Signal', value: 'Nov 11, 1982' },
+            { label: 'Status', value: 'Silent — Presumed Dead' },
+          ],
+          description: 'Viking 1 was the first U.S. spacecraft to successfully land on Mars and conduct a long-term mission on the Martian surface. It was designed to study the planet\'s atmosphere, weather, and soil chemistry — and to search for evidence of life. The lander operated for 6 years and 108 days, far exceeding its 90-day design life.',
+          facts: [
+            'The lander was renamed the Thomas Mutch Memorial Station in 1982 in honor of the Viking project scientist.',
+            'Conducted the first successful on-site biological experiments on another planet.',
+            'Returned over 1,400 images of the Martian surface and atmosphere.',
+            'Its meteorological instruments recorded some of the first weather data from Mars.',
+            'Contact was lost on November 11, 1982, after a faulty command caused the lander\'s antenna to point away from Earth.',
+          ],
+        },
+      };
+
+      function open(key) {
+        const d = data[key]; if (!d) return;
+
+        mImg.classList.remove('hidden');
+        mVideo.classList.add('hidden');
+        mVideo.pause();
+        mVideo.removeAttribute('src');
+        mVideo.load();
+
+        mImg.src = d.image;
+        mImg.onerror = function () {
+          if (!this.dataset.fb1) { this.dataset.fb1 = '1'; this.src = d.imageFallback1; }
+          else if (!this.dataset.fb2) { this.dataset.fb2 = '1'; this.src = d.imageFallback2; }
+        };
+
+        if (d.video) {
+          mVideo.src = d.video;
+          mVideo.poster = d.videoPoster || d.image;
+        }
+
+        mTitle.textContent = d.title;
+        mBadge.textContent = d.badge;
+        mTel.innerHTML = d.telemetry.map(t => `
+          <div class="bg-slate-500/10 rounded-lg p-3 border border-adaptive">
+            <div class="text-[10px] text-subtle uppercase tracking-wider">${t.label}</div>
+            <div class="text-sm font-semibold text-adaptive mt-0.5">${t.value}</div>
+          </div>`).join('');
+        mDesc.textContent = d.description;
+        mFacts.innerHTML = d.facts.map(f => `
+          <li class="flex items-start gap-2 text-sm text-muted">
+            <svg class="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg><span>${f}</span>
+          </li>`).join('');
+
+        mDownload.dataset.nasaId = d.nasaId;
+        mDownload.dataset.filename = key + '_nasa.jpg';
+        mNasaLink.href = d.nasaPage;
+
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function close() {
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+        mVideo.pause();
+      }
+
+      document.querySelectorAll('.read-more-btn').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); open(b.dataset.relic); }));
+      document.querySelectorAll('[data-relic]').forEach(c => c.addEventListener('click', e => { if (!e.target.closest('.read-more-btn') && !e.target.closest('.download-btn') && !e.target.closest('a')) open(c.dataset.relic); }));
+      mClose.addEventListener('click', close);
+      overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+
+      mDownload.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const nasaId = mDownload.dataset.nasaId;
+        const filename = mDownload.dataset.filename;
+        if (nasaId) downloadFromNASA(nasaId, filename, mDownload);
+      });
+    })();
+
+    /* ============================================================
+       8. AI TUTOR
+       ============================================================ */
+    (function () {
+      const toggle = document.getElementById('chatToggle');
+      const panel = document.getElementById('chatPanel');
+      const msgs = document.getElementById('chatMessages');
+      const form = document.getElementById('chatForm');
+      const input = document.getElementById('chatInput');
+      const iconOpen = document.getElementById('chatIconOpen');
+      const iconClose = document.getElementById('chatIconClose');
+      const micBtn = document.getElementById('micBtn');
+      const speakerBtn = document.getElementById('speakerToggle');
+      const chips = document.getElementById('quickChips');
+
+      let open = false, busy = false, voiceOut = false, listening = false;
+      let memory = [];
+
+      toggle.addEventListener('click', () => {
+        open = !open;
+        panel.classList.toggle('open', open);
+        iconOpen.classList.toggle('hidden', open);
+        iconClose.classList.toggle('hidden', !open);
+        if (open) input.focus();
+      });
+
+      speakerBtn.addEventListener('click', () => {
+        voiceOut = !voiceOut;
+        speakerBtn.classList.toggle('speaker-on', voiceOut);
+        if (!voiceOut && window.speechSynthesis) window.speechSynthesis.cancel();
+      });
+
+      function norm(t) {
+        return t.toLowerCase().replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
+      }
+
+      const KB = [
+        { k: ['apollo 11','apollo','lunar module','eagle','tranquility','armstrong','aldrin','moon landing','first moon'],
+          a: '🌕 **Apollo 11** was the first crewed Moon landing — July 20, 1969.\n• Crew: Neil Armstrong & Buzz Aldrin\n• Site: Tranquility Base (0.674°N, 23.473°E)\n• The Lunar Module "Eagle" descent stage (~2,034 kg dry) was left behind\n• Its Laser Ranging RetroReflector is *still* used to measure Earth–Moon distance with mm precision' },
+        { k: ['curiosity','mars rover','gale crater','msl'],
+          a: '🔴 **Curiosity** — NASA\'s car-sized Mars rover.\n• Landed: Aug 6, 2012 in Gale Crater (4.589°S, 137.442°E)\n• Mass: 899 kg, nuclear-powered\n• Still operational after 10+ years\n• Proved Gale Crater once held a habitable lake' },
+        { k: ['viking 1','viking lander','viking','chryse planitia'],
+          a: '🛰️ **Viking 1** — first successful US Mars lander.\n• Landed: July 20, 1976 at Chryse Planitia (22.27°N, 49.97°W)\n• Operated 6 years 108 days (design: 90 days)\n• First on-site search for life on Mars\n• Last contact: Nov 11, 1982' },
+        { k: ['compare','difference','vs','versus'],
+          a: '📊 **Comparison:**\n• Apollo 11 (1969) — Moon, 15,103 kg, crewed\n• Curiosity (2012) — Mars, 899 kg, still working\n• Viking 1 (1976) — Mars, 572 kg, operated 6+ years' },
+        { k: ['location','where','coordinates'],
+          a: '📍 Locations:\n• Apollo 11 → 0.674°N, 23.473°E (Moon)\n• Curiosity → 4.589°S, 137.442°E (Mars)\n• Viking 1 → 22.27°N, 49.97°W (Mars)' },
+        { k: ['download','image','nasa','picture','photo'],
+          a: '📥 Use the **Download** button on any museum card to fetch full-resolution images directly from NASA! Each card also has a **NASA.gov** link.' },
+        { k: ['black hole','blackhole','gravity','event horizon'],
+          a: '🕳️ That stunning black hole behind you? It\'s rendered in real time on HTML5 canvas — with an accretion disk, photon ring, gravitational lensing, and infalling debris that spirals inward as it accelerates. Pure vanilla JS, no libraries.' },
+        { k: ['hello','hi','hey'],
+          a: 'Hello! 👋 I\'m your RelicOrbit 3D AI Tutor. Ask me about Apollo 11, Curiosity, Viking 1, space heritage, or the black hole animation!' },
+        { k: ['help','what can you do'],
+          a: '🤖 I can answer questions about the three relics, space heritage, NASA image downloads, and the black hole animation. Try: "Where is Viking 1?" or "Tell me about the black hole."' },
+        { k: ['thank','thanks','awesome','cool','great'],
+          a: 'You\'re welcome! 🚀 Ask away — I love talking about space.' },
+      ];
+
+      function findAnswer(query) {
+        const q = norm(query);
+        if (!q) return 'Ask me something!';
+        let best = null, bestScore = 0;
+        for (const entry of KB) {
+          let score = 0;
+          for (const kw of entry.k) {
+            if (q.includes(kw)) score += kw.length + 2;
+          }
+          if (score > bestScore) { bestScore = score; best = entry.a; }
+        }
+        if (bestScore >= 3) return best;
+        return 'Hmm, I\'m not sure. I specialize in **Apollo 11**, **Curiosity**, **Viking 1**, and space heritage. Try "Where is Curiosity?" or "Tell me a joke".';
+      }
+
+      function showTyping() {
+        const t = document.createElement('div');
+        t.className = 'chat-typing'; t.id = 'typingIndicator';
+        t.innerHTML = '<span></span><span></span><span></span>';
+        msgs.appendChild(t); msgs.scrollTop = msgs.scrollHeight;
+      }
+      function hideTyping() { const t = document.getElementById('typingIndicator'); if (t) t.remove(); }
+
+      function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+      function renderText(s) {
+        return escapeHtml(s)
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.+?)\*/g, '<em>$1</em>')
+          .replace(/\n/g, '<br>');
+      }
+
+      function attachCopyButton(el, rawText) {
+        const btn = document.createElement('button');
+        btn.className = 'copy-btn';
+        btn.title = 'Copy answer';
+        btn.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>`;
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const plain = rawText.replace(/\*\*/g, '').replace(/\*/g, '');
+          try { await navigator.clipboard.writeText(plain); }
+          catch {
+            const ta = document.createElement('textarea');
+            ta.value = plain; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); } catch {}
+            ta.remove();
+          }
+          btn.classList.add('copied');
+          btn.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`;
+          setTimeout(() => {
+            btn.classList.remove('copied');
+            btn.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>`;
+          }, 1600);
+        });
+        el.appendChild(btn);
+      }
+
+      function addMessage(text, who, animate = false) {
+        const el = document.createElement('div');
+        el.className = `chat-msg ${who}`;
+        if (animate && who === 'bot') {
+          const words = text.split(/(\s+)/);
+          el.innerHTML = words.map(w => `<span class="word">${renderText(w)}</span>`).join('');
+          msgs.appendChild(el);
+          el.querySelectorAll('.word').forEach((s, i) => { s.style.animationDelay = (i * 0.025) + 's'; });
+        } else {
+          el.innerHTML = renderText(text);
+          msgs.appendChild(el);
+        }
+        if (who === 'bot') attachCopyButton(el, text);
+        msgs.scrollTop = msgs.scrollHeight;
+        return el;
+      }
+
+      function speak(text) {
+        if (!voiceOut || !('speechSynthesis' in window)) return;
+        window.speechSynthesis.cancel();
+        const clean = text.replace(/\*\*/g, '').replace(/\*/g, '').replace(/[•🌕🔴🛰️📊📍⚖️📅🏛️😄🥚🌌👋🤖🚀🌍✨]/g, '');
+        const u = new SpeechSynthesisUtterance(clean);
+        u.rate = 1.02; u.pitch = 1.0; u.volume = 0.95;
+        window.speechSynthesis.speak(u);
+      }
+
+      function handleQuery(query) {
+        if (!query || busy) return;
+        busy = true; input.disabled = true;
+        addMessage(query, 'user');
+        memory.push({ role: 'user', content: query });
+        showTyping();
+        const delay = 500 + Math.min(query.length * 12, 900);
+        setTimeout(() => {
+          hideTyping();
+          const answer = findAnswer(query);
+          addMessage(answer, 'bot', true);
+          memory.push({ role: 'assistant', content: answer });
+          if (memory.length > 12) memory = memory.slice(-12);
+          speak(answer);
+          busy = false; input.disabled = false; input.focus();
+        }, delay);
+      }
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const q = input.value.trim();
+        if (!q) return;
+        input.value = '';
+        handleQuery(q);
+      });
+
+      chips.querySelectorAll('.quick-chip').forEach(c => {
+        c.addEventListener('click', () => handleQuery(c.dataset.q));
+      });
+
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SR) {
+        const rec = new SR();
+        rec.continuous = false; rec.interimResults = false; rec.lang = 'en-US';
+        rec.onresult = (e) => handleQuery(e.results[0][0].transcript);
+        rec.onend = () => { listening = false; micBtn.classList.remove('mic-active'); };
+        rec.onerror = () => { listening = false; micBtn.classList.remove('mic-active'); };
+        micBtn.addEventListener('click', () => {
+          if (listening) { rec.stop(); return; }
+          listening = true; micBtn.classList.add('mic-active');
+          try { rec.start(); } catch (_) {}
+        });
+      } else {
+        micBtn.style.display = 'none';
+      }
+    })();
+
+    /* ============================================================
+       9. SMOOTH SCROLL
+       ============================================================ */
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', function (e) {
+        const id = this.getAttribute('href');
+        if (id === '#') return;
+        const t = document.querySelector(id);
+        if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      });
+    });
+  </script>
+</body>
+</html>
